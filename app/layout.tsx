@@ -4,6 +4,9 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Gangetabel Spil 2.0',
   description: 'Lær gangetabellen på en sjov måde!',
+  icons: {
+    icon: '/images/ugle2.png'
+  }
 }
 
 import OwlMascot from './OwlMascot'
