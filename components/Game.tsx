@@ -68,28 +68,30 @@ export default function Game() {
     }));
   };
 
-  const saveToLeaderboard = () => {
-    const storedEntries = localStorage.getItem(CONFIG.LEADERBOARD_KEY);
-    let entries: LeaderboardEntry[] = storedEntries ? JSON.parse(storedEntries) : [];
-    
-    const newEntry: LeaderboardEntry = {
-      playerName: gameState.playerName,
-      score: gameState.score,
-      bestStreak: gameState.bestStreak,
-      wrongAnswers: gameState.wrongAnswers,
-      chosenNumber: gameState.chosenNumber || 0,
-      date: new Date().toISOString()
-    };
-    
-    entries.push(newEntry);
-    
-    // Keep only the top 100 entries
-    if (entries.length > 100) {
-      entries.sort((a, b) => b.score - a.score);
-      entries = entries.slice(0, 100);
+  const saveToLeaderboard = async () => {
+    try {
+      const entry = {
+        playerName: gameState.playerName,
+        score: gameState.score,
+        bestStreak: gameState.bestStreak,
+        wrongAnswers: gameState.wrongAnswers,
+        chosenNumber: gameState.chosenNumber || 0
+      };
+      
+      const response = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(entry),
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to save to leaderboard');
+      }
+    } catch (error) {
+      console.error('Error saving to leaderboard:', error);
     }
-    
-    localStorage.setItem(CONFIG.LEADERBOARD_KEY, JSON.stringify(entries));
   };
 
   const checkAnswer = (selected: number, correct: number) => {
@@ -119,10 +121,9 @@ export default function Game() {
         }));
         
         // Save to leaderboard when game is completed
-        setTimeout(() => {
-          saveToLeaderboard();
+        saveToLeaderboard().then(() => {
           setCurrentScreen('end');
-        }, 100);
+        });
       } else {
         setGameState(prev => ({
           ...prev,

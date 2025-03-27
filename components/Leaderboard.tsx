@@ -19,12 +19,30 @@ interface LeaderboardProps {
 export default function Leaderboard({ onClose }: LeaderboardProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [sortBy, setSortBy] = useState<'score' | 'date'>('score');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const storedEntries = localStorage.getItem(CONFIG.LEADERBOARD_KEY);
-    if (storedEntries) {
-      setEntries(JSON.parse(storedEntries));
-    }
+    const fetchLeaderboard = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/leaderboard');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch leaderboard');
+        }
+        
+        const data = await response.json();
+        setEntries(data.entries || []);
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+        setError('Kunne ikke hente leaderboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
   }, []);
 
   const sortedEntries = [...entries].sort((a, b) => {
@@ -61,7 +79,11 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
         </button>
       </div>
       
-      {sortedEntries.length > 0 ? (
+      {loading ? (
+        <div className="text-center py-4">Indlæser...</div>
+      ) : error ? (
+        <div className="text-center py-4 text-red-500">{error}</div>
+      ) : sortedEntries.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
