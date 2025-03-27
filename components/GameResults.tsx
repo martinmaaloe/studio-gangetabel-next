@@ -8,6 +8,7 @@ interface GameResultsProps {
   number: number;
   score: number;
   bestStreak: number;
+  wrongAnswers: number;
   onRestart: () => void;
 }
 
@@ -16,30 +17,34 @@ export default function GameResults({
   number,
   score,
   bestStreak,
+  wrongAnswers,
   onRestart
 }: GameResultsProps) {
   return (
-    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg text-center">
-      <h2 className="text-2xl text-primary mb-6">
-        {MESSAGES.endGame
-          .replace('{name}', playerName)
-          .replace('{number}', number.toString())}
-      </h2>
-
-      <div className="bg-white/10 rounded-lg p-4 mb-6">
-        <p className="text-xl mb-2">
-          {MESSAGES.stats.finalScore.replace('{score}', score.toString())}
-        </p>
-        <p className="text-xl">
-          {MESSAGES.stats.bestStreak.replace('{streak}', bestStreak.toString())}
-        </p>
+    <div className="text-center space-y-6">
+      <h1 className="text-3xl font-bold text-primary mb-4">Godt klaret, {playerName}!</h1>
+      <p className="text-xl">Du har gennemført {number}-tabellen.</p>
+      
+      <div className="bg-white p-6 rounded-lg shadow-md space-y-4 max-w-md mx-auto">
+        <div className="flex justify-between items-center">
+          <span className="font-semibold">🏆 Point:</span>
+          <span className="text-xl">{score}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="font-semibold">🔥 Højeste streak:</span>
+          <span className="text-xl">{bestStreak}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="font-semibold">🙈 Kom igen:</span>
+          <span className="text-xl">{wrongAnswers}</span>
+        </div>
       </div>
-
+      
       <button
         onClick={onRestart}
-        className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:transform hover:scale-105 transition-all"
+        className="bg-primary text-white px-6 py-3 rounded-lg text-lg hover:bg-secondary transition-colors"
       >
-        Spil igen
+        Prøv en anden tabel
       </button>
     </div>
   );

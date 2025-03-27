@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocalStorage } from '../lib/hooks/useLocalStorage';
 import { CONFIG } from '../lib/config';
 import { MESSAGES } from '../lib/messages';
-import GameHeader from './GameHeader';
 import GameBoard from './GameBoard';
+import GameHeader from './GameHeader';
 import GameControls from './GameControls';
 import GameResults from './GameResults';
 
@@ -14,6 +14,7 @@ interface GameState {
   chosenNumber: number | null;
   currentStep: number | null;
   questionsAnswered: number;
+  wrongAnswers: number;
   score: number;
   currentStreak: number;
   bestStreak: number;
@@ -24,6 +25,7 @@ const initialGameState: GameState = {
   chosenNumber: null,
   currentStep: null,
   questionsAnswered: 0,
+  wrongAnswers: 0,
   score: 0,
   currentStreak: 0,
   bestStreak: 0,
@@ -57,12 +59,16 @@ export default function Game() {
       chosenNumber: number,
       currentStep: getRandomNumber(),
       questionsAnswered: 0,
+      wrongAnswers: 0,
       score: 0,
       currentStreak: 0,
     }));
   };
 
   const checkAnswer = (selected: number, correct: number) => {
+    // Track if this is a first attempt for this question
+    const isFirstAttempt = true; // We'll assume each question is a new attempt
+
     if (selected === correct) {
       const newStep = getRandomNumber();
       const newScore = gameState.score + CONFIG.POINTS_PER_CORRECT;
@@ -90,7 +96,12 @@ export default function Game() {
         }));
       }
     } else {
-      setGameState(prev => ({ ...prev, currentStreak: 0 }));
+      // Increment wrong answers counter
+      setGameState(prev => ({ 
+        ...prev, 
+        wrongAnswers: prev.wrongAnswers + 1, 
+        currentStreak: 0 
+      }));
     }
   };
 
@@ -176,6 +187,7 @@ export default function Game() {
           bestStreak={gameState.bestStreak}
           number={gameState.chosenNumber || 0}
           playerName={gameState.playerName}
+          wrongAnswers={gameState.wrongAnswers}
           onRestart={restartGame}
         />
       )}
