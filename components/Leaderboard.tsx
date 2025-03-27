@@ -48,6 +48,10 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
       setLoading(true);
       setError('');
       
+      // First try to load from localStorage
+      const localStorageSuccess = loadFromLocalStorage();
+      const localStorageEntries = localStorageSuccess ? [...entries] : [];
+      
       try {
         const response = await fetch('/api/leaderboard');
         
@@ -56,37 +60,39 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
           
           if (data.usingLocalStorage) {
             setDebugInfo('API returned empty, using localStorage');
-            // API returned but using localStorage - try to load from localStorage
-            if (!loadFromLocalStorage()) {
-              setEntries([]);
-            }
-            setUsingFallback(true);
+            // API returned but using localStorage - already loaded above
           } else if (data.entries && Array.isArray(data.entries)) {
             if (data.entries.length > 0) {
-              setEntries(data.entries);
-              setDebugInfo('Using Edge Config successfully');
+              // Compare with localStorage - if local has more entries, keep using it
+              if (localStorageSuccess && localStorageEntries.length > data.entries.length) {
+                setDebugInfo('Using localStorage (more entries than Edge Config)');
+              } else {
+                setEntries(data.entries);
+                setUsingFallback(false);
+                setDebugInfo('Using Edge Config successfully');
+              }
             } else {
-              // Edge Config returned empty array, try localStorage as fallback
-              if (!loadFromLocalStorage()) {
+              // Edge Config returned empty array, keep using localStorage if available
+              if (!localStorageSuccess) {
                 setEntries([]);
                 setDebugInfo('Edge Config empty, localStorage empty');
               }
             }
           } else {
             setError('Kunne ikke hente leaderboard data - uventet format');
-            loadFromLocalStorage();
+            // Already loaded from localStorage above
           }
         } else {
           const data = await response.json().catch(() => ({ error: 'Invalid JSON response' }));
           console.error('API error:', data);
           setError(`Kunne ikke hente leaderboard data: ${data.error || 'Unknown error'}`);
-          loadFromLocalStorage();
+          // Already loaded from localStorage above
         }
       } catch (err) {
         console.error('Error fetching from API:', err);
         setDebugInfo(`API fetch error: ${err instanceof Error ? err.message : String(err)}`);
         setError('Kunne ikke hente leaderboard data - netværksfejl');
-        loadFromLocalStorage();
+        // Already loaded from localStorage above
       } finally {
         setLoading(false);
       }

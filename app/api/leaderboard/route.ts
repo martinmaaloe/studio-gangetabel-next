@@ -180,7 +180,11 @@ export async function POST(request: Request) {
       }
       
       console.log(`Returning success, total entries: ${entries.length}`);
-      return NextResponse.json({ success: true });
+      // Return the updated entries immediately instead of relying on Edge Config to propagate
+      return NextResponse.json({ 
+        success: true, 
+        entries: entries // Return the updated entries immediately
+      });
     } catch (error: any) {
       console.error('Error updating leaderboard:', error);
       // Fall back to localStorage

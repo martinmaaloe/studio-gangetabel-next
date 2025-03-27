@@ -98,6 +98,10 @@ export default function Game() {
         const data = await response.json();
         if (data.usingLocalStorage) {
           console.log('API is falling back to localStorage');
+        } else if (data.entries) {
+          console.log('Successfully saved to Edge Config, received updated entries');
+          // Store the updated entries in localStorage to ensure immediate visibility
+          localStorage.setItem(CONFIG.LEADERBOARD_KEY, JSON.stringify(data.entries));
         } else {
           console.log('Successfully saved to Edge Config');
         }
