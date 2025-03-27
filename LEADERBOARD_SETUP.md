@@ -1,81 +1,77 @@
 # Setting Up the Leaderboard with Vercel Edge Config
 
-This guide will help you set up Vercel Edge Config for the gangetabel leaderboard.
+## Introduction
+This leaderboard implementation uses Vercel Edge Config, a globally distributed key-value store that offers ultra-low latency reads. Edge Config is perfect for storing leaderboard data which is frequently read but infrequently updated.
 
-## Step 1: Install the Vercel CLI (if not already installed)
+## Setup Steps
 
-```bash
-npm install -g vercel
-```
+### 1. Create an Edge Config in Vercel
 
-## Step 2: Login to Vercel
+1. Go to your Vercel dashboard and select your project.
+2. Navigate to the "Storage" tab.
+3. Select "Edge Config" from the available options.
+4. Click "Create Edge Config".
+5. Once created, you'll see your Edge Config ID and connection information.
 
-```bash
-vercel login
-```
+### 2. Initialize your leaderboard
 
-## Step 3: Link Your Project to Vercel
+1. In the Edge Config dashboard, click "Add New Item"
+2. Set the key name to: `leaderboard`
+3. Set the value type to: `Array`
+4. Set the initial value to: `[]` (an empty array)
+5. Click "Add"
 
-```bash
-vercel link
-```
+### 3. Connect Edge Config to your local project
 
-## Step 4: Create an Edge Config in Vercel
+1. Make sure your project is linked to Vercel:
+   ```bash
+   npx vercel link
+   ```
 
-1. Go to your Vercel dashboard: https://vercel.com/dashboard
-2. Select your project
-3. Go to the "Storage" tab
-4. Click "Create" and select "Edge Config"
-5. Follow the setup instructions to create your Edge Config
+2. Pull your environment variables:
+   ```bash
+   npx vercel env pull
+   ```
 
-## Step 5: Connect Your Local Project
+3. This will create or update your `.env.local` file with the `EDGE_CONFIG` connection string.
 
-After creating the Edge Config, get the connection string:
+### 4. Test locally
 
-1. In the Vercel dashboard, go to your Edge Config
-2. Copy the connection string (it looks like `https://edge-config.vercel.com/[ID]_[SECRET]`)
-3. Add it to your `.env.local` file:
+1. Run your development server:
+   ```bash
+   npm run dev
+   ```
 
-```
-EDGE_CONFIG="https://edge-config.vercel.com/YOUR_CONNECTION_STRING"
-```
+2. Test the leaderboard functionality. The app will automatically use localStorage if Edge Config is not properly configured.
 
-## Step 6: Test Locally
-
-Start your development server:
-
-```bash
-npm run dev
-```
-
-The leaderboard should now be connected to your Vercel Edge Config.
-
-## Step 7: Deploy
-
-Deploy your application to Vercel:
+### 5. Deploy to Vercel
 
 ```bash
-vercel
+npx vercel deploy
 ```
 
 ## Usage
 
-- The leaderboard will automatically save game results when a player completes a game
-- The data is stored in Edge Config and is accessible across all devices
-- Edge Config has ultra-fast reads (most under 1ms)
-- The data is replicated globally in all Edge Network regions
+The leaderboard implementation will:
+- Automatically read data from Edge Config when available
+- Fall back to localStorage if Edge Config is not configured or encounters errors
+- Display a yellow banner when using localStorage instead of Edge Config
+- Store the top 100 scores sorted by highest score first
 
-## Benefits of Using Edge Config
+## Benefits of Edge Config
 
-- Ultra-low latency access (most reads under 1ms)
-- Global replication across all Vercel Edge Network regions
-- Simple key-value storage perfect for leaderboards
-- Compatible with all Vercel plans including Hobby
+- Ultra-low latency reads globally
+- Automatically replicated across all Vercel regions
+- No infrastructure to manage
+- Perfect for data that is frequently read but rarely written to
 
 ## Troubleshooting
 
 If you encounter issues:
 
-1. Check that your `.env.local` file has the proper Edge Config connection string
-2. Make sure your Edge Config is properly set up in the Vercel dashboard
-3. Check the browser console and server logs for any error messages 
+1. Verify your Edge Config is properly created in the Vercel dashboard
+2. Ensure your `.env.local` file contains the `EDGE_CONFIG` variable
+3. Check the browser console for any error messages
+4. Restart your development server after making changes to environment variables
+
+Note: The leaderboard will always fall back to localStorage if Edge Config is not available, so your application will continue to function even without Edge Config configured. 
