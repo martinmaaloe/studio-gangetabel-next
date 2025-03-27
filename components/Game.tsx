@@ -8,6 +8,8 @@ import GameBoard from './GameBoard';
 import GameHeader from './GameHeader';
 import GameControls from './GameControls';
 import GameResults from './GameResults';
+import { LeaderboardEntry } from './Leaderboard';
+import Leaderboard from './Leaderboard';
 
 interface GameState {
   playerName: string;
@@ -34,6 +36,7 @@ const initialGameState: GameState = {
 export default function Game() {
   const [gameState, setGameState] = useLocalStorage<GameState>('gangetabel_game_state', initialGameState);
   const [currentScreen, setCurrentScreen] = useState<'name' | 'start' | 'game' | 'end'>('name');
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     if (gameState.playerName) {
@@ -65,16 +68,46 @@ export default function Game() {
     }));
   };
 
+  const saveToLeaderboard = () => {
+    const storedEntries = localStorage.getItem(CONFIG.LEADERBOARD_KEY);
+    let entries: LeaderboardEntry[] = storedEntries ? JSON.parse(storedEntries) : [];
+    
+    const newEntry: LeaderboardEntry = {
+      playerName: gameState.playerName,
+      score: gameState.score,
+      bestStreak: gameState.bestStreak,
+      wrongAnswers: gameState.wrongAnswers,
+      chosenNumber: gameState.chosenNumber || 0,
+      date: new Date().toISOString()
+    };
+    
+    entries.push(newEntry);
+    
+    // Keep only the top 100 entries
+    if (entries.length > 100) {
+      entries.sort((a, b) => b.score - a.score);
+      entries = entries.slice(0, 100);
+    }
+    
+    localStorage.setItem(CONFIG.LEADERBOARD_KEY, JSON.stringify(entries));
+  };
+
   const checkAnswer = (selected: number, correct: number) => {
     // Track if this is a first attempt for this question
     const isFirstAttempt = true; // We'll assume each question is a new attempt
 
     if (selected === correct) {
       const newStep = getRandomNumber();
-      const newScore = gameState.score + CONFIG.POINTS_PER_CORRECT;
+      const newQuestionsAnswered = (gameState.questionsAnswered || 0) + 1;
+      const totalAttempts = newQuestionsAnswered + gameState.wrongAnswers;
+      
+      // Calculate score with accuracy formula
+      // Score = (Correct Answers × Base Points) × (Correct Answers / Total Attempts)
+      const accuracyRatio = newQuestionsAnswered / totalAttempts;
+      const newScore = Math.round(newQuestionsAnswered * CONFIG.POINTS_PER_CORRECT * accuracyRatio);
+      
       const newStreak = gameState.currentStreak + 1;
       const newBestStreak = Math.max(gameState.bestStreak, newStreak);
-      const newQuestionsAnswered = (gameState.questionsAnswered || 0) + 1;
 
       if (newQuestionsAnswered >= CONFIG.QUESTIONS_PER_GAME) {
         setGameState(prev => ({
@@ -84,7 +117,12 @@ export default function Game() {
           bestStreak: newBestStreak,
           questionsAnswered: newQuestionsAnswered,
         }));
-        setCurrentScreen('end');
+        
+        // Save to leaderboard when game is completed
+        setTimeout(() => {
+          saveToLeaderboard();
+          setCurrentScreen('end');
+        }, 100);
       } else {
         setGameState(prev => ({
           ...prev,
@@ -97,11 +135,21 @@ export default function Game() {
       }
     } else {
       // Increment wrong answers counter
-      setGameState(prev => ({ 
-        ...prev, 
-        wrongAnswers: prev.wrongAnswers + 1, 
-        currentStreak: 0 
-      }));
+      setGameState(prev => {
+        const newWrongAnswers = prev.wrongAnswers + 1;
+        const totalAttempts = prev.questionsAnswered + newWrongAnswers;
+        
+        // Recalculate score with new accuracy ratio
+        const accuracyRatio = prev.questionsAnswered / totalAttempts;
+        const newScore = Math.round(prev.questionsAnswered * CONFIG.POINTS_PER_CORRECT * accuracyRatio);
+        
+        return {
+          ...prev,
+          wrongAnswers: newWrongAnswers,
+          score: newScore,
+          currentStreak: 0
+        };
+      });
     }
   };
 
@@ -139,6 +187,19 @@ export default function Game() {
           >
             Start
           </button>
+          
+          <div className="mt-8">
+            <button
+              onClick={() => setShowLeaderboard(!showLeaderboard)}
+              className="bg-secondary text-white px-6 py-2 rounded-lg text-lg hover:opacity-90 transition-opacity"
+            >
+              {showLeaderboard ? 'Skjul leaderboard' : 'Vis leaderboard'}
+            </button>
+            
+            {showLeaderboard && (
+              <Leaderboard onClose={() => setShowLeaderboard(false)} />
+            )}
+          </div>
         </div>
       )}
 

@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { MESSAGES } from '../lib/messages';
+import Leaderboard from './Leaderboard';
 
 interface GameResultsProps {
   playerName: string;
@@ -20,6 +21,8 @@ export default function GameResults({
   wrongAnswers,
   onRestart
 }: GameResultsProps) {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
   return (
     <div className="text-center space-y-6">
       <h1 className="text-3xl font-bold text-primary mb-4">Godt klaret, {playerName}!</h1>
@@ -40,12 +43,25 @@ export default function GameResults({
         </div>
       </div>
       
-      <button
-        onClick={onRestart}
-        className="bg-primary text-white px-6 py-3 rounded-lg text-lg hover:bg-secondary transition-colors"
-      >
-        Prøv en anden tabel
-      </button>
+      <div className="flex justify-center space-x-4">
+        <button
+          onClick={onRestart}
+          className="bg-primary text-white px-6 py-3 rounded-lg text-lg hover:bg-secondary transition-colors"
+        >
+          Prøv en anden tabel
+        </button>
+        
+        <button
+          onClick={() => setShowLeaderboard(!showLeaderboard)}
+          className="bg-secondary text-white px-6 py-3 rounded-lg text-lg hover:opacity-90 transition-opacity"
+        >
+          {showLeaderboard ? 'Skjul leaderboard' : 'Vis leaderboard'}
+        </button>
+      </div>
+      
+      {showLeaderboard && (
+        <Leaderboard onClose={() => setShowLeaderboard(false)} />
+      )}
     </div>
   );
 } 

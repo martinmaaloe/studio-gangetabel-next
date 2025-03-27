@@ -11,6 +11,7 @@ export const CONFIG = {
   
   // Storage keys
   STORAGE_KEY: 'gangetabel_game_state',
+  LEADERBOARD_KEY: 'gangetabel_leaderboard',
   
   // Animation settings
   CONFETTI: {
