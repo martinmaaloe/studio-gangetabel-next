@@ -100,23 +100,20 @@ export default function Game() {
   };
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
-      <h1 className="text-4xl font-bold text-center text-primary mb-8 text-shadow">
-        Gangetabel Spil 2.0
-      </h1>
-
+    <div className="max-w-2xl mx-auto p-4">
       {currentScreen === 'name' && (
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg">
-          <h2 className="text-2xl text-primary mb-4">Velkommen! Indtast dit navn:</h2>
+        <div className="text-center space-y-4">
+          <h1 className="text-3xl font-bold text-primary mb-8">Gangetabel Spil</h1>
+          <p className="text-xl mb-4">Hvad hedder du?</p>
           <input
             type="text"
-            placeholder="Dit navn"
-            className="w-full max-w-sm mx-auto block p-3 rounded-lg border-2 border-primary text-center font-semibold"
-            onKeyPress={(e) => e.key === 'Enter' && saveName(e.currentTarget.value)}
+            className="border-2 border-primary rounded-lg px-4 py-2 text-lg w-full max-w-md"
+            placeholder="Skriv dit navn her"
+            onKeyPress={(e) => e.key === 'Enter' && saveName((e.target as HTMLInputElement).value)}
           />
           <button
-            className="mt-4 bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:transform hover:scale-105 transition-all"
-            onClick={(e) => saveName((e.target as HTMLButtonElement).previousElementSibling?.value || '')}
+            onClick={() => saveName((document.querySelector('input') as HTMLInputElement).value)}
+            className="bg-primary text-white px-6 py-2 rounded-lg text-lg hover:bg-secondary transition-colors"
           >
             Start
           </button>
@@ -124,13 +121,12 @@ export default function Game() {
       )}
 
       {currentScreen === 'start' && (
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg">
-          <h2 className="text-2xl text-primary mb-4">
-            {MESSAGES.welcome.replace('{name}', gameState.playerName)}
-          </h2>
-          <h3 className="text-xl text-success mb-4">{MESSAGES.chooseNumber}</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-            {CONFIG.AVAILABLE_NUMBERS.map(num => (
+        <div className="text-center space-y-4">
+          <h1 className="text-3xl font-bold text-primary mb-8">Gangetabel Spil</h1>
+          <p className="text-xl mb-4">{MESSAGES.welcome.replace('{name}', gameState.playerName)}</p>
+          <p className="text-lg mb-8">{MESSAGES.chooseNumber}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
               <button
                 key={num}
                 onClick={() => startGame(num)}
@@ -144,38 +140,33 @@ export default function Game() {
       )}
 
       {currentScreen === 'game' && gameState.chosenNumber && gameState.currentStep && (
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+        <div className="space-y-6">
+          <GameHeader
+            number={gameState.chosenNumber}
+            step={gameState.currentStep}
+            score={gameState.score}
+            streak={gameState.currentStreak}
+            bestStreak={gameState.bestStreak}
+          />
           <GameBoard
             number={gameState.chosenNumber}
             step={gameState.currentStep}
             onAnswer={checkAnswer}
+            playerName={gameState.playerName}
           />
-          <GameControls
-            score={gameState.score}
-            streak={gameState.currentStreak}
-            progress={(gameState.currentStep - CONFIG.START_STEP) / (CONFIG.MAX_STEPS - CONFIG.START_STEP + 1) * 100}
-          />
+          <GameControls onRestart={restartGame} />
         </div>
       )}
 
       {currentScreen === 'end' && (
         <GameResults
-          playerName={gameState.playerName}
-          number={gameState.chosenNumber || 0}
           score={gameState.score}
           bestStreak={gameState.bestStreak}
+          number={gameState.chosenNumber || 0}
+          playerName={gameState.playerName}
           onRestart={restartGame}
         />
       )}
-
-      <div className="fixed bottom-0 left-0 w-full h-36 bg-gradient-to-t from-primary to-secondary rounded-t-full -z-10" />
-      <div className="fixed bottom-5 left-1/2 transform -translate-x-1/2 z-10">
-        <img
-          src="/images/ugle2.png"
-          alt="Ugle maskot"
-          className="w-36 h-auto opacity-80 hover:opacity-100 hover:scale-110 transition-all cursor-pointer"
-        />
-      </div>
     </div>
   );
 } 
