@@ -82,6 +82,7 @@ export default function Game() {
     
     // Then try to save to the KV database via API
     try {
+      console.log('Saving to leaderboard API:', entry);
       const response = await fetch('/api/leaderboard', {
         method: 'POST',
         headers: {
@@ -92,6 +93,14 @@ export default function Game() {
       
       if (!response.ok) {
         console.error('Failed to save to leaderboard API, using localStorage only');
+        // We already saved to localStorage above
+      } else {
+        const data = await response.json();
+        if (data.usingLocalStorage) {
+          console.log('API is falling back to localStorage');
+        } else {
+          console.log('Successfully saved to Edge Config');
+        }
       }
     } catch (error) {
       console.error('Error saving to leaderboard API:', error);

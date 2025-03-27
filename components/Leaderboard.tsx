@@ -24,77 +24,69 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
   const [usingFallback, setUsingFallback] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
 
-  // Immediately try to load from localStorage as a backup
   useEffect(() => {
     const loadFromLocalStorage = () => {
       try {
         const storedEntries = localStorage.getItem(CONFIG.LEADERBOARD_KEY);
         if (storedEntries) {
-          setEntries(JSON.parse(storedEntries));
-          setUsingFallback(true);
-          setError('Bruger lokal lagring - leaderboard vil kun vises på denne enhed');
-          return true;
+          const parsedEntries = JSON.parse(storedEntries);
+          if (Array.isArray(parsedEntries) && parsedEntries.length > 0) {
+            setEntries(parsedEntries);
+            setUsingFallback(true);
+            setDebugInfo('Using localStorage fallback');
+            return true;
+          }
         }
+        return false;
       } catch (err) {
-        console.error('Error loading from localStorage:', err);
+        console.error('Failed to load from localStorage:', err);
+        return false;
       }
-      return false;
     };
 
     const fetchLeaderboard = async () => {
+      setLoading(true);
+      setError('');
+      
       try {
-        setLoading(true);
-        setDebugInfo('Fetching from API...');
+        const response = await fetch('/api/leaderboard');
         
-        // First try the API
-        try {
-          console.log('Fetching leaderboard from API...');
-          const response = await fetch('/api/leaderboard');
-          console.log('API response status:', response.status);
-          
+        if (response.ok) {
           const data = await response.json();
-          console.log('API response data:', data);
           
-          if (response.ok) {
-            setEntries(data.entries || []);
-            
-            // Check if we're using localStorage fallback from the API
-            if (data.usingLocalStorage) {
-              setUsingFallback(true);
-              setError('Bruger lokal lagring - leaderboard vil kun vises på denne enhed');
-              setDebugInfo('API returned usingLocalStorage=true');
-            } else {
-              setUsingFallback(false);
-              setError('');
+          if (data.usingLocalStorage) {
+            setDebugInfo('API returned empty, using localStorage');
+            // API returned but using localStorage - try to load from localStorage
+            if (!loadFromLocalStorage()) {
+              setEntries([]);
+            }
+            setUsingFallback(true);
+          } else if (data.entries && Array.isArray(data.entries)) {
+            if (data.entries.length > 0) {
+              setEntries(data.entries);
               setDebugInfo('Using Edge Config successfully');
-            }
-            setLoading(false);
-            return;
-          }
-          
-          // API failed but returned a response
-          setDebugInfo(`API error: ${data.error || 'Unknown error'}`);
-          console.error('API error:', data);
-          
-          // Fall back to localStorage if API fails
-          if (!loadFromLocalStorage()) {
-            setEntries([]);
-            if (data.error && data.error.includes('Edge Config not configured')) {
-              setError('Bruger lokal lagring - leaderboard vil kun vises på denne enhed');
             } else {
-              setError(`Kunne ikke hente leaderboard data: ${data.error || 'Unknown error'}`);
+              // Edge Config returned empty array, try localStorage as fallback
+              if (!loadFromLocalStorage()) {
+                setEntries([]);
+                setDebugInfo('Edge Config empty, localStorage empty');
+              }
             }
+          } else {
+            setError('Kunne ikke hente leaderboard data - uventet format');
+            loadFromLocalStorage();
           }
-        } catch (err) {
-          console.error('Error fetching from API:', err);
-          setDebugInfo(`API fetch error: ${err instanceof Error ? err.message : String(err)}`);
-          
-          // API request completely failed, fallback to localStorage
-          if (!loadFromLocalStorage()) {
-            setEntries([]);
-            setError('Kunne ikke hente leaderboard data - netværksfejl');
-          }
+        } else {
+          const data = await response.json().catch(() => ({ error: 'Invalid JSON response' }));
+          console.error('API error:', data);
+          setError(`Kunne ikke hente leaderboard data: ${data.error || 'Unknown error'}`);
+          loadFromLocalStorage();
         }
+      } catch (err) {
+        console.error('Error fetching from API:', err);
+        setDebugInfo(`API fetch error: ${err instanceof Error ? err.message : String(err)}`);
+        setError('Kunne ikke hente leaderboard data - netværksfejl');
+        loadFromLocalStorage();
       } finally {
         setLoading(false);
       }

@@ -114,11 +114,25 @@ export async function POST(request: Request) {
         console.warn('Edge Config client not available for reading existing entries');
       }
       
-      // Add new entry
-      entries.push({
-        ...entry,
-        date: new Date().toISOString(),
-      });
+      // Check if player already exists
+      const playerIndex = entries.findIndex(e => e.playerName === entry.playerName);
+      
+      if (playerIndex !== -1) {
+        // Update existing entry
+        console.log(`Updating existing entry for player: ${entry.playerName}`);
+        entries[playerIndex] = {
+          ...entries[playerIndex],
+          ...entry,
+          date: new Date().toISOString(),
+        };
+      } else {
+        // Add new entry
+        console.log(`Adding new entry for player: ${entry.playerName}`);
+        entries.push({
+          ...entry,
+          date: new Date().toISOString(),
+        });
+      }
       
       // Keep only top 100 entries
       if (entries.length > 100) {
@@ -126,9 +140,46 @@ export async function POST(request: Request) {
         entries = entries.slice(0, 100);
       }
       
+      // Save the updated entries back to Edge Config
+      if (process.env.EDGE_CONFIG) {
+        const edgeConfigId = parseEdgeConfigId(process.env.EDGE_CONFIG);
+        // Use the personal access token with full API access
+        const token = "y8BBFZEQbWEMdU8qKcaZwHHf";
+        
+        if (edgeConfigId && token) {
+          const apiUrl = `https://api.vercel.com/v1/edge-config/${edgeConfigId}/items`;
+          
+          try {
+            console.log(`Using personal access token for API write`);
+            const response = await axios.patch(
+              apiUrl,
+              {
+                items: [
+                  {
+                    operation: "update",
+                    key: CONFIG.LEADERBOARD_KEY,
+                    value: entries
+                  }
+                ]
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            
+            console.log(`Successfully saved ${entries.length} entries to Edge Config`);
+          } catch (error: any) {
+            console.error('Error saving to Edge Config:', error.response?.status, error.response?.data);
+          }
+        } else {
+          console.error('Could not parse Edge Config ID or token from environment variable');
+        }
+      }
+      
       console.log(`Returning success, total entries: ${entries.length}`);
-      // For now, we'll return success and rely on the dashboard for writing
-      // In a real production app, we'd use the Vercel API to write
       return NextResponse.json({ success: true });
     } catch (error: any) {
       console.error('Error updating leaderboard:', error);
