@@ -15,11 +15,14 @@ This leaderboard implementation uses Vercel Edge Config, a globally distributed 
 
 ### 2. Initialize your leaderboard
 
-1. In the Edge Config dashboard, click "Add New Item"
-2. Set the key name to: `leaderboard`
-3. Set the value type to: `Array`
-4. Set the initial value to: `[]` (an empty array)
-5. Click "Add"
+1. In the Edge Config dashboard, locate the JSON editor at the bottom of the screen
+2. Enter the following JSON to create an empty leaderboard array:
+   ```json
+   {
+     "leaderboard": []
+   }
+   ```
+3. Click "Save" or "Submit" to store this configuration
 
 ### 3. Connect Edge Config to your local project
 
@@ -70,7 +73,7 @@ The leaderboard implementation will:
 If you encounter issues:
 
 1. Verify your Edge Config is properly created in the Vercel dashboard
-2. Ensure your `.env.local` file contains the `EDGE_CONFIG` variable
+2. Ensure your `.env.local` file contains the `EDGE_CONFIG` variable with the correct ID
 3. Check the browser console for any error messages
 4. Restart your development server after making changes to environment variables
 
