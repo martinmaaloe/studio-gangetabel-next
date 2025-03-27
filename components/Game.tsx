@@ -69,15 +69,19 @@ export default function Game() {
   };
 
   const saveToLeaderboard = async () => {
+    const entry = {
+      playerName: gameState.playerName,
+      score: gameState.score,
+      bestStreak: gameState.bestStreak,
+      wrongAnswers: gameState.wrongAnswers,
+      chosenNumber: gameState.chosenNumber || 0
+    };
+    
+    // Always save to localStorage first for immediate feedback
+    saveToLocalStorage(entry);
+    
+    // Then try to save to the KV database via API
     try {
-      const entry = {
-        playerName: gameState.playerName,
-        score: gameState.score,
-        bestStreak: gameState.bestStreak,
-        wrongAnswers: gameState.wrongAnswers,
-        chosenNumber: gameState.chosenNumber || 0
-      };
-      
       const response = await fetch('/api/leaderboard', {
         method: 'POST',
         headers: {
@@ -87,10 +91,37 @@ export default function Game() {
       });
       
       if (!response.ok) {
-        console.error('Failed to save to leaderboard');
+        console.error('Failed to save to leaderboard API, using localStorage only');
       }
     } catch (error) {
-      console.error('Error saving to leaderboard:', error);
+      console.error('Error saving to leaderboard API:', error);
+      // Already saved to localStorage above
+    }
+  };
+
+  // Helper function to save to localStorage as a fallback
+  const saveToLocalStorage = (entry: Omit<LeaderboardEntry, 'date'>) => {
+    try {
+      // Get current entries from localStorage
+      const storedEntries = localStorage.getItem(CONFIG.LEADERBOARD_KEY);
+      let entries: LeaderboardEntry[] = storedEntries ? JSON.parse(storedEntries) : [];
+      
+      // Add new entry with date
+      entries.push({
+        ...entry,
+        date: new Date().toISOString()
+      });
+      
+      // Keep only top 100 entries
+      if (entries.length > 100) {
+        entries.sort((a, b) => b.score - a.score);
+        entries = entries.slice(0, 100);
+      }
+      
+      // Save back to localStorage
+      localStorage.setItem(CONFIG.LEADERBOARD_KEY, JSON.stringify(entries));
+    } catch (err) {
+      console.error('Failed to save to localStorage:', err);
     }
   };
 
