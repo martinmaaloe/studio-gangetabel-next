@@ -1,7 +1,8 @@
 export const CONFIG = {
   // Game settings
-  MAX_STEPS: 10,
-  START_STEP: 2,
+  QUESTIONS_PER_GAME: 10,
+  MIN_NUMBER: 2,
+  MAX_NUMBER: 10,
   OPTIONS_PER_QUESTION: 4,
   
   // Scoring
@@ -20,5 +21,5 @@ export const CONFIG = {
   },
   
   // Available numbers for practice
-  AVAILABLE_NUMBERS: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  AVAILABLE_NUMBERS: [2, 3, 4, 5, 6, 7, 8, 9, 10]
 } as const; 

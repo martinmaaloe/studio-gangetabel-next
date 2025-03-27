@@ -13,6 +13,7 @@ interface GameState {
   playerName: string;
   chosenNumber: number | null;
   currentStep: number | null;
+  questionsAnswered: number;
   score: number;
   currentStreak: number;
   bestStreak: number;
@@ -22,6 +23,7 @@ const initialGameState: GameState = {
   playerName: '',
   chosenNumber: null,
   currentStep: null,
+  questionsAnswered: 0,
   score: 0,
   currentStreak: 0,
   bestStreak: 0,
@@ -53,7 +55,8 @@ export default function Game() {
     setGameState(prev => ({
       ...prev,
       chosenNumber: number,
-      currentStep: CONFIG.START_STEP,
+      currentStep: getRandomNumber(),
+      questionsAnswered: 0,
       score: 0,
       currentStreak: 0,
     }));
@@ -61,17 +64,19 @@ export default function Game() {
 
   const checkAnswer = (selected: number, correct: number) => {
     if (selected === correct) {
-      const newStep = (gameState.currentStep || CONFIG.START_STEP) + 1;
+      const newStep = getRandomNumber();
       const newScore = gameState.score + CONFIG.POINTS_PER_CORRECT;
       const newStreak = gameState.currentStreak + 1;
       const newBestStreak = Math.max(gameState.bestStreak, newStreak);
+      const newQuestionsAnswered = (gameState.questionsAnswered || 0) + 1;
 
-      if (newStep > CONFIG.MAX_STEPS) {
+      if (newQuestionsAnswered >= CONFIG.QUESTIONS_PER_GAME) {
         setGameState(prev => ({
           ...prev,
           score: newScore,
           currentStreak: newStreak,
           bestStreak: newBestStreak,
+          questionsAnswered: newQuestionsAnswered,
         }));
         setCurrentScreen('end');
       } else {
@@ -81,6 +86,7 @@ export default function Game() {
           score: newScore,
           currentStreak: newStreak,
           bestStreak: newBestStreak,
+          questionsAnswered: newQuestionsAnswered,
         }));
       }
     } else {
@@ -97,6 +103,11 @@ export default function Game() {
       currentStreak: 0,
     }));
     setCurrentScreen('start');
+  };
+
+  // Helper function to get random number between 2-10
+  const getRandomNumber = () => {
+    return Math.floor(Math.random() * 9) + 2; // Random number between 2-10
   };
 
   return (
@@ -147,6 +158,7 @@ export default function Game() {
             score={gameState.score}
             streak={gameState.currentStreak}
             bestStreak={gameState.bestStreak}
+            questionsAnswered={gameState.questionsAnswered}
           />
           <GameBoard
             number={gameState.chosenNumber}
