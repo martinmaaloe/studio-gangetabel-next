@@ -17,7 +17,11 @@ interface LeaderboardEntry {
 let edgeConfig: ReturnType<typeof createClient> | undefined;
 try {
   if (process.env.EDGE_CONFIG) {
+    console.log('Edge Config string present:', process.env.EDGE_CONFIG.substring(0, 50) + '...');
     edgeConfig = createClient(process.env.EDGE_CONFIG);
+    console.log('Edge Config client created successfully');
+  } else {
+    console.warn('EDGE_CONFIG environment variable is not set');
   }
 } catch (error) {
   console.error('Error creating Edge Config client:', error);
@@ -38,23 +42,34 @@ export async function GET() {
   try {
     // Get leaderboard data from Edge Config
     let entries: LeaderboardEntry[] = [];
+    console.log('GET /api/leaderboard - Edge Config client available:', !!edgeConfig);
     
     if (edgeConfig) {
       try {
+        console.log('Attempting to read from Edge Config, key:', CONFIG.LEADERBOARD_KEY);
         const data = await edgeConfig.get(CONFIG.LEADERBOARD_KEY);
+        console.log('Edge Config data received:', JSON.stringify(data).substring(0, 100));
+        
         if (data && Array.isArray(data)) {
           // Use a safer type conversion approach
           entries = (data as unknown) as LeaderboardEntry[];
+          console.log(`Found ${entries.length} entries in Edge Config`);
+        } else {
+          console.warn('Data from Edge Config is not an array:', typeof data);
         }
       } catch (error) {
         console.error('Error reading from Edge Config:', error);
+        console.error('Edge Config details:', {
+          configId: process.env.EDGE_CONFIG?.split('?')[0],
+          hasToken: !!process.env.EDGE_CONFIG?.includes('token=')
+        });
         // Continue with empty entries array
       }
     } else {
-      console.warn('Edge Config client not available');
+      console.warn('Edge Config client not available, returning empty entries');
     }
     
-    return NextResponse.json({ entries });
+    return NextResponse.json({ entries, usingLocalStorage: !edgeConfig });
   } catch (error: any) {
     console.error('Error fetching leaderboard:', error);
     
@@ -66,13 +81,14 @@ export async function GET() {
       }, { status: 500 });
     }
     
-    return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch leaderboard', message: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
     const entry = await request.json() as Omit<LeaderboardEntry, 'date'>;
+    console.log('POST /api/leaderboard - New entry:', entry);
     
     // If Edge Config is not available, just return success
     // The client will save to localStorage
@@ -86,10 +102,16 @@ export async function POST(request: Request) {
       let entries: LeaderboardEntry[] = [];
       
       if (edgeConfig) {
+        console.log('Attempting to read existing entries from Edge Config');
         const data = await edgeConfig.get(CONFIG.LEADERBOARD_KEY);
         if (data && Array.isArray(data)) {
           entries = (data as unknown) as LeaderboardEntry[];
+          console.log(`Found ${entries.length} existing entries in Edge Config`);
+        } else {
+          console.warn('Data from Edge Config is not an array:', typeof data);
         }
+      } else {
+        console.warn('Edge Config client not available for reading existing entries');
       }
       
       // Add new entry
@@ -104,13 +126,18 @@ export async function POST(request: Request) {
         entries = entries.slice(0, 100);
       }
       
+      console.log(`Returning success, total entries: ${entries.length}`);
       // For now, we'll return success and rely on the dashboard for writing
       // In a real production app, we'd use the Vercel API to write
       return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating leaderboard:', error);
       // Fall back to localStorage
-      return NextResponse.json({ success: true, usingLocalStorage: true });
+      return NextResponse.json({ 
+        success: true, 
+        usingLocalStorage: true, 
+        error: error.message 
+      });
     }
   } catch (error: any) {
     console.error('Error adding to leaderboard:', error);
@@ -123,6 +150,6 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
     
-    return NextResponse.json({ error: 'Failed to add to leaderboard' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to add to leaderboard', message: error.message }, { status: 500 });
   }
 } 

@@ -22,6 +22,7 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [usingFallback, setUsingFallback] = useState(false);
+  const [debugInfo, setDebugInfo] = useState('');
 
   // Immediately try to load from localStorage as a backup
   useEffect(() => {
@@ -43,37 +44,55 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
     const fetchLeaderboard = async () => {
       try {
         setLoading(true);
+        setDebugInfo('Fetching from API...');
         
         // First try the API
         try {
+          console.log('Fetching leaderboard from API...');
           const response = await fetch('/api/leaderboard');
+          console.log('API response status:', response.status);
+          
+          const data = await response.json();
+          console.log('API response data:', data);
           
           if (response.ok) {
-            const data = await response.json();
             setEntries(data.entries || []);
+            
+            // Check if we're using localStorage fallback from the API
+            if (data.usingLocalStorage) {
+              setUsingFallback(true);
+              setError('Bruger lokal lagring - leaderboard vil kun vises på denne enhed');
+              setDebugInfo('API returned usingLocalStorage=true');
+            } else {
+              setUsingFallback(false);
+              setError('');
+              setDebugInfo('Using Edge Config successfully');
+            }
             setLoading(false);
             return;
           }
           
-          // API failed, try to extract error info
-          const errorData = await response.json().catch(() => ({}));
-          console.error('API error:', errorData);
+          // API failed but returned a response
+          setDebugInfo(`API error: ${data.error || 'Unknown error'}`);
+          console.error('API error:', data);
           
           // Fall back to localStorage if API fails
           if (!loadFromLocalStorage()) {
             setEntries([]);
-            if (errorData.error && errorData.error.includes('KV database not configured')) {
+            if (data.error && data.error.includes('Edge Config not configured')) {
               setError('Bruger lokal lagring - leaderboard vil kun vises på denne enhed');
             } else {
-              setError('Kunne ikke hente leaderboard data');
+              setError(`Kunne ikke hente leaderboard data: ${data.error || 'Unknown error'}`);
             }
           }
         } catch (err) {
           console.error('Error fetching from API:', err);
+          setDebugInfo(`API fetch error: ${err instanceof Error ? err.message : String(err)}`);
+          
           // API request completely failed, fallback to localStorage
           if (!loadFromLocalStorage()) {
             setEntries([]);
-            setError('Kunne ikke hente leaderboard data');
+            setError('Kunne ikke hente leaderboard data - netværksfejl');
           }
         }
       } finally {
@@ -109,6 +128,12 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
         </div>
       )}
       
+      {error && !usingFallback && (
+        <div className="bg-red-100 p-2 mb-4 rounded text-center text-sm">
+          {error}
+        </div>
+      )}
+      
       <div className="flex justify-between mb-4">
         <button 
           onClick={() => setSortBy('score')}
@@ -126,8 +151,6 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
       
       {loading ? (
         <div className="text-center py-4">Indlæser...</div>
-      ) : error && !usingFallback ? (
-        <div className="text-center py-4 text-red-500">{error}</div>
       ) : sortedEntries.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -155,6 +178,12 @@ export default function Leaderboard({ onClose }: LeaderboardProps) {
         </div>
       ) : (
         <p className="text-center py-4">Ingen resultater endnu. Spil et spil!</p>
+      )}
+      
+      {process.env.NODE_ENV === 'development' && debugInfo && (
+        <div className="mt-4 text-xs text-gray-500 border-t pt-2">
+          <div>Debug: {debugInfo}</div>
+        </div>
       )}
     </div>
   );
