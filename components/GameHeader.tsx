@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { MESSAGES } from '../lib/messages';
 import { CONFIG } from '../lib/config';

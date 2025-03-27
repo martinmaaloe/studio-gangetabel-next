@@ -1,5 +1,5 @@
 import Game from '../components/Game'
-import OwlMascot from './components/OwlMascot'
+import OwlMascot from './OwlMascot'
 
 export default function Home() {
   return (
