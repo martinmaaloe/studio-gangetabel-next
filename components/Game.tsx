@@ -20,6 +20,7 @@ interface GameState {
   score: number;
   currentStreak: number;
   bestStreak: number;
+  usedCombinations: Set<string>;
 }
 
 const initialGameState: GameState = {
@@ -31,6 +32,7 @@ const initialGameState: GameState = {
   score: 0,
   currentStreak: 0,
   bestStreak: 0,
+  usedCombinations: new Set(),
 };
 
 export default function Game() {
@@ -60,11 +62,12 @@ export default function Game() {
     setGameState(prev => ({
       ...prev,
       chosenNumber: number,
-      currentStep: getRandomNumber(),
+      currentStep: getRandomNumber(number, new Set()),
       questionsAnswered: 0,
       wrongAnswers: 0,
       score: 0,
       currentStreak: 0,
+      usedCombinations: new Set(),
     }));
   };
 
@@ -139,29 +142,30 @@ export default function Game() {
   };
 
   const checkAnswer = (selected: number, correct: number) => {
-    // Track if this is a first attempt for this question
-    const isFirstAttempt = true; // We'll assume each question is a new attempt
-
     if (selected === correct) {
-      const newStep = getRandomNumber();
+      const combination = `${gameState.chosenNumber}x${gameState.currentStep}`;
+      const newUsedCombinations = new Set(gameState.usedCombinations);
+      newUsedCombinations.add(combination);
+      
+      const newStep = getRandomNumber(gameState.chosenNumber!, newUsedCombinations);
       const newQuestionsAnswered = (gameState.questionsAnswered || 0) + 1;
       const totalAttempts = newQuestionsAnswered + gameState.wrongAnswers;
       
       // Calculate score with accuracy formula
-      // Score = (Correct Answers × Base Points) × (Correct Answers / Total Attempts)
       const accuracyRatio = newQuestionsAnswered / totalAttempts;
       const newScore = Math.round(newQuestionsAnswered * CONFIG.POINTS_PER_CORRECT * accuracyRatio);
       
       const newStreak = gameState.currentStreak + 1;
       const newBestStreak = Math.max(gameState.bestStreak, newStreak);
 
-      if (newQuestionsAnswered >= CONFIG.QUESTIONS_PER_GAME) {
+      if (newQuestionsAnswered >= CONFIG.QUESTIONS_PER_GAME || newStep === null) {
         setGameState(prev => ({
           ...prev,
           score: newScore,
           currentStreak: newStreak,
           bestStreak: newBestStreak,
           questionsAnswered: newQuestionsAnswered,
+          usedCombinations: newUsedCombinations,
         }));
         
         // Save to leaderboard when game is completed
@@ -176,6 +180,7 @@ export default function Game() {
           currentStreak: newStreak,
           bestStreak: newBestStreak,
           questionsAnswered: newQuestionsAnswered,
+          usedCombinations: newUsedCombinations,
         }));
       }
     } else {
@@ -209,9 +214,22 @@ export default function Game() {
     setCurrentScreen('start');
   };
 
-  // Helper function to get random number between 2-10
-  const getRandomNumber = () => {
-    return Math.floor(Math.random() * 9) + 2; // Random number between 2-10
+  // Helper function to get random number between 2-10 that hasn't been used before
+  const getRandomNumber = (chosenNumber: number, usedCombinations: Set<string>) => {
+    const availableNumbers = [];
+    for (let i = 2; i <= 10; i++) {
+      const combination = `${chosenNumber}x${i}`;
+      if (!usedCombinations.has(combination)) {
+        availableNumbers.push(i);
+      }
+    }
+    
+    if (availableNumbers.length === 0) {
+      return null; // All combinations have been used
+    }
+    
+    const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+    return availableNumbers[randomIndex];
   };
 
   return (
